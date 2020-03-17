@@ -1,19 +1,31 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <AutoComplete
+    label="Search Countries"
+    :items="isExistingUsers"
+  />
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import AutoComplete from './components/AutoComplete.vue'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
-  }
+    AutoComplete,
+  },
+  data() {
+    let isExistingUsers = [
+    { label: 'Canada',},
+    { label: 'Cambodia',},
+    { label: 'Cameroon',},
+    { label: 'Corona'}
+    ];
+    return {isExistingUsers};
+  },
 }
+
 </script>
 
 <style>
