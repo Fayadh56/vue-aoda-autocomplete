@@ -1,8 +1,6 @@
 <template>
     <div class="autocomplete">
-        <label :for="inputId">{{ label }}</label>
         <div class="autocomplete__input-group" 
-            :class="{ 'autocomplete__input-group--error': validatonMessage }"
             role="combobox"
             aria-haspopup="listbox"
             aria-owns="autocomplete-results"
@@ -16,16 +14,16 @@
                 aria-label="Choose a country"
                 role="searchbox"
                 aria-controls="autocomplete-results"
-                aria-activedescendant="activedescendant"
-                v-model="inputText"
+                :aria-activedescendant="activedescendant"
+                v-model="searchInput"
                 @input="changeText"
                 class="autocomplete__input"
+                @blur="closeOnBlur"
+                @focus="activedescendant"
                 @keydown.down="onArrowDown"
                 @keydown.up="onArrowUp"
                 @keydown.enter="onEnter"
                 @keydown.esc="onEsc"
-                @blur="closeOnBlur"
-                @focus="openOnFocus"
                 :placeholder="placeholder"
                 ref="autcompleteInput"
             >
@@ -36,53 +34,33 @@
                     role="option"
                     :aria-selected="index === arrowCounter"
                     :key="index"
-                    :id="getId(index)"
+                    :id="suggestion.placeId"
                     :class="{'is-active': index === arrowCounter }"
                     class="autocomplete-result"
                     @click="setResult(suggestion, index)"
+                    @keydown.enter="onEnter"
+                    @keydown.esc="onEsc"
                 >
-                    {{ suggestion.label }}
+                    {{ suggestion.description }}
                 </li>
             </ul>
             <span class="sr-only" role="status" aria-live="assertive" aria-relevant="additions">{{ currentFocusedOption }}</span>
         </div>
-        <label :for="inputId" v-show="validatonMessage" class="form-validation form-validation--error">{{ validatonMessage }}</label>
     </div>
 </template>
 <script>
-
 import { required, minLength } from 'vuelidate/lib/validators';
 export default {
     name: "AutoComplete",
     props: {
-        label: {
-            type: String,
-            required: true
-        },
         placeholder: {
             type: String,
             required: false,
             default: ""
         },
-        validatonMessage: {
-            type: String,
-            required: false,
-            default: ""
-        },
-        inputName: {
-            type: String,
-            required: false,
-            default: "email"
-        },
-        items: {
-            type: Array,
-            required: false,
-            default: () => [],
-        },
-        isLoading: {
-            type: Boolean,
-            required: false,
-            default: false
+        suggestions: {
+            type: Object,
+            required: true,
         },
     },
     data () {
@@ -92,7 +70,11 @@ export default {
             inputText: "",
             isOpen: false,
             arrowCounter: -1,
-            currentFocusedOption: ""
+            currentFocusedOption: "",
+            selectedSuggestion: null,
+            searchInput: '',
+            address: {},
+            activedescendant: ''
         }
     },
     mounted() {
@@ -100,10 +82,10 @@ export default {
     },  
     methods: {
         getId(index) {
-        return `result-item-${index}`;
+            return `result-item-${index}`;
         },
         changeText (e) {
-            this.$emit('autocompleteInput', this.inputText.trim());
+            this.$emit('onSearchInput', this.searchInput.trim());
             this.open();
         },
         open () {
@@ -112,17 +94,26 @@ export default {
         },
         setResult (suggestion, index) {
             this.$emit("autocompleteSelected", suggestion);
-            this.inputText = suggestion.label;
+            this.searchInput = suggestion.description;
             this.close();
         },
         onArrowDown (e) {
             e.preventDefault();
-            if (this.arrowCounter < this.suggestions.length - 1) {
-                this.arrowCounter = this.arrowCounter + 1;
-            } else {
-                this.arrowCounter = 0;
+            const { key } = event
+
+            switch (key) {
+            case 'Down': // IE/Edge
+            case 'ArrowDown': {
+                if (this.arrowCounter < this.suggestions.length - 1) {
+                    this.arrowCounter = this.arrowCounter + 1;
+                } else {
+                    this.arrowCounter = 0;
+                }
+                this.currentFocusedOption = this.suggestions[this.arrowCounter].description;
+                this.setActiveDescendant();
+                break
             }
-            this.currentFocusedOption = this.suggestions[this.arrowCounter].value;
+            default: return;}
         },
         onArrowUp (e) {
             if (this.arrowCounter > 0) {
@@ -130,7 +121,8 @@ export default {
             } else {
                 this.arrowCounter = this.suggestions.length - 1;
             }
-            this.currentFocusedOption = this.suggestions[this.arrowCounter].value;
+            this.currentFocusedOption = this.suggestions[this.arrowCounter].description;
+            this.setActiveDescendant();
         },
         onEnter (e) {
             if (this.isOpen) {
@@ -164,16 +156,9 @@ export default {
             if (!this.$el.contains(e.target)) {
                 this.close();
             }
-        }
-    },
-    computed: {
-        suggestions () {
-            if (this.items.length) {
-                if (typeof this.items[0] !== "object") throw new Error("Items in autocomplete must be a list of objects with a label and a value.");
-            }
-            let items = this.items.filter(item => item.label.toUpperCase().indexOf(this.inputText.toUpperCase().trim()) > -1);
-            if (items.length) return items;
-            return [];
+        },
+        setActiveDescendant () {
+            this.activedescendant = this.getId(this.arrowCounter);
         }
     },
     destroyed () {
@@ -181,6 +166,7 @@ export default {
     }
 }
 </script>
+
 <style>
 #app {
   font-family: "Avenir", Helvetica, Arial, sans-serif;
@@ -190,16 +176,16 @@ export default {
   margin-top: 60px;
 }
 
-.autocomplete {
+.autocomplete, .autocomplete__input {
   position: relative;
-  width: 180px;
+  width: 680px;
 }
 
 .autocomplete-results {
   padding: 0;
   margin: 0;
   border: 1px solid #eeeeee;
-  height: 120px;
+  height: 150px;
   overflow: auto;
   width: 100%;
 }
@@ -215,5 +201,9 @@ export default {
 .autocomplete-result:hover {
   background-color: #4aae9b;
   color: white;
+}
+
+.sr-only {
+    display: none;
 }
 </style>
