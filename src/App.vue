@@ -33,7 +33,7 @@ export default {
   },
   mounted() {
       // load google maps API with KEY
-      loadGmaps('AIzaSyAJtjrYTb50aVWv1eQrYGFSGAy3-mmEYoE');
+      loadGmaps('');
   },
   methods: {
     getSearchValue(value) {
