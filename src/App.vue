@@ -4,6 +4,7 @@
             v-slot="{ suggestions }"
             ref="geoLocate"
             :search="searchInput"
+            :country="['ca']"
             :suggestion="selectedSuggestion || null"
             @geocoded="address = { ...$event.normalizedAddress }"
             @error="searchInput = ''"
