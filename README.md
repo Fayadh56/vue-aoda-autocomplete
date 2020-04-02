@@ -1,4 +1,4 @@
-# autocomplete-test
+# Vue AODA autocomplete solution for Google Places. 
 
 ## Project setup
 ```
